@@ -1,8 +1,6 @@
 package main
 
-import (
-	"code.google.com/p/go-tour/pic"
-)
+import "golang.org/x/tour/pic"
 
 func Pic(dx, dy int) [][]uint8 {
 	// el := se usa si la inicializas
@@ -11,8 +9,8 @@ func Pic(dx, dy int) [][]uint8 {
 		fila := make([]uint8, dy, dy)
 		for y := 0; y < dy; y++ {
 			// en cada fila se llenan las columnas con valores uint8
-			fila[y] = uint8((x + y) / 2)
-			fila[len(fila)-y-1] = fila[y] ^ uint8(x*y)
+			fila[y] = uint8((x ^ y))
+			//fila[len(fila)-y-1] = uint8(x*y)
 		}
 		image[x] = fila
 	}
