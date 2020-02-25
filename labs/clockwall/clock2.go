@@ -2,25 +2,50 @@
 package main
 
 import (
-	"io"
+	"flag"
+	"fmt"
 	"log"
 	"net"
+	"os"
+	"strconv"
 	"time"
 )
+
+var port int
+var tz string
 
 func handleConn(c net.Conn) {
 	defer c.Close()
 	for {
-		_, err := io.WriteString(c, time.Now().Format("15:04:05\n"))
+		t, err := TimeIn(time.Now(), tz)
+		if err == nil {
+			loc := t.Location()
+			fmt.Println(loc, t.Format("\t:15:04:05"))
+		} else {
+			fmt.Println(tz, "")
+		}
 		if err != nil {
 			return // e.g., client disconnected
 		}
 		time.Sleep(1 * time.Second)
 	}
 }
+func TimeIn(t time.Time, name string) (time.Time, error) {
+	loc, err := time.LoadLocation(name)
+	if err == nil {
+		t = t.In(loc)
+	}
+	return t, err
+}
 
 func main() {
-	listener, err := net.Listen("tcp", "localhost:9090")
+	tz = os.Getenv("TZ")
+	port := flag.Int("port", port, "test port")
+	// Parse the flags.
+	flag.Parse()
+	fmt.Println("  Port:", *port)
+	fmt.Println("  TZ:", tz)
+	listener, err := net.Listen("tcp", "localhost:"+(strconv.Itoa(*port)))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -33,3 +58,5 @@ func main() {
 		go handleConn(conn) // handle connections concurrently
 	}
 }
+
+//TZ=Europe/London ./clock2 -port 8030 &
