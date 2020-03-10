@@ -7,8 +7,14 @@ Then, do the following 2 excercises.
 What is the maximum number of pipeline stages you can create without running out of memory? How long does a value take to transite
 the entire pipeline?
 
+to run file:
+	go run tarea_go_routines.go
+
 2. Write a program with 2 goroutines that send messages back and forth over two unbuffered channels in ping-pong fashion.
 How many communications per second can the program sustain?
+
+to run file:
+	go run unbuffered_channels.go
 
 - Update the `README.md` file on instructions about how to run your programs.
 - Your 2 programs must automatically generate their proper result report depending on what parameters they received or the response
