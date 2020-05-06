@@ -5,8 +5,10 @@ import (
 	"log"
 	"time"
 
+	"github.com/CodersSquad/dc-labs/challenges/third-partial/controller"
 	pb "github.com/CodersSquad/dc-labs/challenges/third-partial/proto"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
 )
 
 //const (
@@ -27,14 +29,15 @@ func schedule(job Job) {
 	}
 	defer conn.Close()
 	c := pb.NewGreeterClient(conn)
-
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
+	controller.Nodes["Popeye"] = metadata.New(map[string]string{"controller": "", "host": "", "node": "", "tags": "", "status": ""})
 	r, err := c.SayHello(ctx, &pb.HelloRequest{Name: job.RPCName})
 	if err != nil {
 		log.Fatalf("could not greet: %v", err)
 	}
 	log.Printf("Scheduler: RPC respose from %s : %s", job.Address, r.GetMessage())
+
 }
 
 func Start(jobs chan Job) error {

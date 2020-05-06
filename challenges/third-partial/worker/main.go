@@ -45,7 +45,7 @@ func (s *server) SayHello(ctx context.Context, in *pb.HelloRequest) (*pb.HelloRe
 
 func init() {
 	flag.StringVar(&controllerAddress, "controller", "tcp://localhost:40899", "Controller address")
-	flag.StringVar(&workerName, "worker-name", "hard-worker", "Worker Name")
+	flag.StringVar(&workerName, "node-name", "hard-worker", "Worker Name")
 	flag.StringVar(&tags, "tags", "gpu,superCPU,largeMemory", "Comma-separated worker tags")
 }
 
@@ -73,6 +73,7 @@ func joinCluster() {
 			die("Cannot recv: %s", err.Error())
 		}
 		log.Printf("Message-Passing: Worker(%s): Received %s\n", workerName, string(msg))
+
 	}
 }
 
@@ -100,12 +101,20 @@ func main() {
 	rpcPort := getAvailablePort()
 	log.Printf("Starting RPC Service on localhost:%v", rpcPort)
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%v", rpcPort))
+
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
+
+	defer func() {
+		lis.Close()
+		fmt.Println("Listener closed")
+	}()
 	s := grpc.NewServer()
+	//grpc.UnaryInterceptor()
 	pb.RegisterGreeterServer(s, &server{})
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
 	}
+
 }

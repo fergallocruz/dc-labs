@@ -10,35 +10,62 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"os"
 
-	"gopl.io/ch5/links"
+	"github.com/todostreaming/gopl.io/ch5/links"
 )
+
+type httpPkg struct{}
+
+var http httpPkg
+var depth int
 
 //!+sema
 // tokens is a counting semaphore used to
 // enforce a limit of 20 concurrent requests.
 var tokens = make(chan struct{}, 20)
 
-func crawl(url string) []string {
-	fmt.Println(url)
+func crawl(url string, count int) []string {
+	if count == 0 {
+		fmt.Printf("<- Done with %v, depth 0.\n", url)
+		return []string{""}
+	}
+	fmt.Println(count, url)
 	tokens <- struct{}{} // acquire a token
 	list, err := links.Extract(url)
-	<-tokens // release the token
+	fmt.Printf("Found: %s %q\n", url)
+	done := make(chan bool)
+	worklist := make(chan []string)
+	for i, u := range list {
+		fmt.Printf("-> Crawling child %v/%v of %v : %v.\n", i, len(list), url, u)
+		go func(u string) {
+			worklist <- crawl(u, count-1)
+			done <- true
+		}(u)
+	}
+	for i, u := range list {
+		fmt.Printf("<- [%v] %v/%v Waiting for child %v.\n", url, i, len(list), u)
+		<-done
+	}
 
+	fmt.Printf("<- Done with %v\n", url)
+	<-tokens // release the token
 	if err != nil {
 		log.Print(err)
 	}
 	return list
 }
 
-//!-sema
-
-//!+
 func main() {
 	worklist := make(chan []string)
+	depth := flag.Int("depth", depth, "depth limit")
+	d := *depth
+	// Parse the flags.
+	flag.Parse()
+	fmt.Println("  depth:", *depth)
 	var n int // number of pending sends to worklist
 
 	// Start with the command-line arguments.
@@ -48,13 +75,13 @@ func main() {
 	// Crawl the web concurrently.
 	seen := make(map[string]bool)
 	for ; n > 0; n-- {
-		list := <-worklist
+		list := <-worklist //gets each link
 		for _, link := range list {
 			if !seen[link] {
 				seen[link] = true
 				n++
 				go func(link string) {
-					worklist <- crawl(link)
+					worklist <- crawl(link, d) //receives new links
 				}(link)
 			}
 		}
