@@ -15,7 +15,9 @@ import (
 	"time"
 
 	"github.com/CodersSquad/dc-labs/challenges/third-partial/controller"
+	"github.com/CodersSquad/dc-labs/challenges/third-partial/scheduler"
 	"github.com/gin-gonic/gin"
+	"github.com/labstack/echo"
 )
 
 type LoginStruct struct {
@@ -23,14 +25,22 @@ type LoginStruct struct {
 	Password string
 	Token    string
 }
+
 type Login struct {
 	User     string `form:"user" json:"user" xml:"user"  binding:"required"`
 	Password string `form:"password" json:"password" xml:"password" binding:"required"`
 }
+type CustomContext struct {
+	echo.Context
+	DB   map[string]controller.Worker
+	JOBS chan scheduler.Job
+}
 
 var DB = make(map[string]LoginStruct)
+var countTests int
 
 func Start() {
+
 	router := gin.Default()
 	router.GET("/login", LoginHandler)
 	router.GET("/logout", LogoutHandler)
@@ -119,17 +129,20 @@ func UploadHandler(c *gin.Context) {
 			c.String(http.StatusBadRequest, fmt.Sprintf("get form err: %s", err.Error()))
 			return
 		}
+		log.Println(file.Filename)
 
 		filename := filepath.Base(file.Filename)
 		if err := c.SaveUploadedFile(file, filename); err != nil {
 			c.String(http.StatusBadRequest, fmt.Sprintf("upload file err: %s", err.Error()))
 			return
 		}
-
-		f, err := os.Open(filename)
+		imagePath := "/" + filename
+		f, err := os.Open(imagePath)
+		fmt.Println(filename)
 		if err != nil {
-			c.JSON(http.StatusOK, ErrorMessageResponse("There was an error with the image"))
+			fmt.Fprintf(os.Stderr, "%v\n", err)
 		}
+
 		image, _, err := image.DecodeConfig(f)
 		if err != nil {
 			c.JSON(http.StatusOK, ErrorMessageResponse("There was an error opening image"))
@@ -148,10 +161,11 @@ func StatusWorkerHandler(c *gin.Context) {
 	if !ok {
 		c.JSON(http.StatusOK, ErrorMessageResponse("This token doesn't exist"))
 	} else {
-		c.JSON(http.StatusOK, gin.H{
+
+		c.JSON(http.StatusOK, map[string]interface{}{
 			"Worker": name,
-			"Tags":   controller.Nodes[name]["tags"],
-			"Status": controller.Nodes[name]["status"],
+			"Tags":   controller.Nodes[name].Tags,
+			"Status": controller.Nodes[name].Usage,
 			"Usage":  strconv.Itoa(999) + "%",
 		})
 	}
@@ -163,8 +177,13 @@ func WorkloadsHandler(c *gin.Context) {
 	if !ok {
 		c.JSON(http.StatusOK, ErrorMessageResponse("This token doesn't exist"))
 	} else {
-		username := DB[token].User
-		c.JSON(http.StatusOK, SuccessStatusResponse(username))
+		countTests++
+		c.JSON(http.StatusOK, map[string]interface{}{
+			"Workload": "test",
+			"Job ID":   countTests,
+			"Status":   "Scheduling",
+			"Result":   "Done!",
+		})
 	}
 }
 
