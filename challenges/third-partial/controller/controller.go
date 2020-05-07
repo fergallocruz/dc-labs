@@ -63,7 +63,7 @@ func Start() {
 		die("SetOption(): %s", err.Error())
 	}
 	for {
-		err = sock.Send([]byte("Is anyone there?"))
+		err = sock.Send([]byte("Hello workers"))
 		if err != nil {
 			die("No workers %+v", err.Error())
 		}
@@ -90,7 +90,7 @@ func Start() {
 }
 func ParseResponse(msg string) Worker {
 	worker := Worker{}
-	data := strings.Split(msg, "|")
+	data := strings.Split(msg, " ")
 	worker.Name = data[0]
 	worker.Status = "free"
 	usage, _ := strconv.Atoi(data[2])
@@ -107,6 +107,7 @@ func ParseResponse(msg string) Worker {
 func IncreaseUse(name string) {
 	if thisProduct, ok := Nodes[name]; ok {
 		thisProduct.Usage++
+		thisProduct.JobsDone++
 		Nodes[name] = thisProduct
 	}
 }
@@ -126,12 +127,3 @@ func GetWorker(id int) string {
 func Register(name string, num int) {
 	tests[strconv.Itoa(num)] = Test{id: num, worker: name}
 }
-
-/*func Register(workerName string, tags string, status string, usage int) {
-	Nodes[workerName] = Node{
-		worker: workerName,
-		tags:   tags,
-		status: "im fine",
-		usage:  70,
-	}
-}*/

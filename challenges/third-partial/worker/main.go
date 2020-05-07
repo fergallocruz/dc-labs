@@ -51,10 +51,8 @@ func init() {
 func (s *server) SayHello(ctx context.Context, in *pb.HelloRequest) (*pb.HelloReply, error) {
 	switch in.Name {
 	case "test":
-		/*Log*/
 		workDone++
-		/*Task*/
-		log.Printf("[Worker] %+v: testing...", workerName)
+		log.Printf("RPC [Worker] %+v: testing...", workerName)
 		usage++
 		status = "Running"
 		usage--
@@ -64,9 +62,6 @@ func (s *server) SayHello(ctx context.Context, in *pb.HelloRequest) (*pb.HelloRe
 		log.Printf("[Worker] %+v: calling", workerName)
 		usage++
 		status = "Running"
-		//response := &pb.HelloReply{Message: "not available"}
-		usage--
-		status = "Idle"
 		return &pb.HelloReply{Message: "Hello " + workerName}, nil
 	}
 }
@@ -83,18 +78,11 @@ func joinCluster() {
 	if err = sock.Dial(controllerAddress); err != nil {
 		die("can't dial on respondent socket: %s", err.Error())
 	}
-
-	// Empty byte array effectively subscribes to everything
-	//data := workerName + "|" + status + "|" + strconv.Itoa(usage) + "|" + tags + "|" + strconv.Itoa(port) + "|" + strconv.Itoa(jobsDone)
-	/*err = sock.SetOption(mangos.OptionSubscribe, []byte(""))
-	if err != nil {
-		die("cannot subscribe: %s", err.Error())
-	}*/
 	for {
 		if msg, err = sock.Recv(); err != nil {
 			die("Cannot recv: %s", err.Error())
 		}
-		data := workerName + "|" + status + "|" + strconv.Itoa(usage) + "|" + tags + "|" + strconv.Itoa(defaultRPCPort) + "|" + strconv.Itoa(jobsDone)
+		data := workerName + " " + status + " " + strconv.Itoa(usage) + " " + tags + " " + strconv.Itoa(defaultRPCPort) + " " + strconv.Itoa(jobsDone)
 		if err = sock.Send([]byte(data)); err != nil {
 			die("Cannot send: %s", err.Error())
 		}

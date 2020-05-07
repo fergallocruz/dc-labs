@@ -192,9 +192,14 @@ func ErrorMessageResponse(message string) gin.H {
 	}
 }
 func SuccessStatusResponse(username string) gin.H {
+	/*workers:= ""
+	for _,u := range controller.Nodes{
+			workers = workers+fmt.Println(u.Name, " ", u.Status, " ", u.Usage,"%")
+	}*/
 	return gin.H{
 		"message": "Hi " + username + ", the DPIP System is Up and Running",
 		"time":    time.Now().Format("2006-01-02T15:04:05+07:00"),
+		"Workers": controller.Nodes,
 	}
 }
 func SuccessUploadResponse(image string, width int, height int) gin.H {
