@@ -24,6 +24,7 @@ type Worker struct {
 	Status   string `json:"status"`
 	Usage    int    `json:"usage"`
 	URL      string `json:"url"`
+	Token    string `json:"token"`
 	Active   bool   `json:"active"`
 	Port     int    `json:"port"`
 	JobsDone int    `json:"jobsDone"`
@@ -32,12 +33,23 @@ type Test struct {
 	id     int
 	worker string
 }
+type ImageService struct{
+	id int
+	image string
+	worker string
+}
+type Workload struct{
+	folder string
+	LastIndex int
+}
 
 var Done = make(chan string)
 
 //var tests []Test
 var tests = make(map[string]Test)
 var Nodes = make(map[string]Worker)
+var filters = make(map[string]ImageService)
+var Results = make(map[string]Workload)
 
 func die(format string, v ...interface{}) {
 	fmt.Fprintln(os.Stderr, fmt.Sprintf(format, v...))
@@ -74,11 +86,13 @@ func Start() {
 			}
 			isRegistered := false
 			worker := ParseResponse(string(msg))
+
 			for _, v := range Nodes {
 				if v.Name == worker.Name {
 					isRegistered = true
 				}
 			}
+
 			if !isRegistered {
 				Nodes[worker.Name] = worker
 			}
@@ -102,8 +116,10 @@ func ParseResponse(msg string) Worker {
 	worker.JobsDone = jobsDone
 	worker.Active = true
 	worker.URL = "localhost:" + data[4]
+	worker.Token = data[6]
 	return worker
 }
+
 func IncreaseUse(name string) {
 	if thisProduct, ok := Nodes[name]; ok {
 		thisProduct.Usage++
@@ -126,4 +142,32 @@ func GetWorker(id int) string {
 }
 func Register(name string, num int) {
 	tests[strconv.Itoa(num)] = Test{id: num, worker: name}
+}
+
+func RegisterImage(name string, filepath string, workload string, num int) {
+	isRegistered := false
+	for t, _ := range Results {
+		if t == workload {
+			isRegistered = true
+			break
+		}
+	}
+	if(!isRegistered){
+		curr := Workload{folder: filepath, LastIndex: 0}
+		Results[workload] = curr
+	}else{
+		curr := Workload{folder: filepath, LastIndex: Results[workload].LastIndex + 1}
+		Results[workload] = curr
+	}
+	filters[strconv.Itoa(num)] = ImageService{id: Results[workload].LastIndex , image: filepath, worker: name}
+}
+
+func IsTokenValid(workerToken string)(bool){
+
+	for _, v := range Nodes {
+		if v.Token == workerToken {
+			return true
+		}
+	}
+	return false
 }
